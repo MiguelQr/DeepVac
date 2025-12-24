@@ -1,6 +1,8 @@
 from opcua import Client
 
-ENDPOINT = "opc.tcp://127.0.0.1:12345"  
+# 192.168.88.166:12345
+#dummy 127.0.0.1:12345
+ENDPOINT = "opc.tcp://192.168.88.166:12345"  
 
 client = Client(ENDPOINT)
 client.connect()
