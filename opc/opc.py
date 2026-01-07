@@ -9,7 +9,7 @@ readings = []
 
 start_time = time.time()
 
-# missing temp_u, temp_u_p, temp_u_i,temp_u_d (Control temperatures base + PID)
+# missing temp_u, temp_u_p, temp_u_i, temp_u_d (Control temperatures base + PID)
 
 while time.time() - start_time < 10.0:
     reads = {

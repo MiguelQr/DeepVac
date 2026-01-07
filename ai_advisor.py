@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-opcua_pid_ai_advisor.py
+ai_advisor.py
 
 Real-time OPC UA loop that:
 - reads chamber telemetry
@@ -13,9 +13,9 @@ Prereqs:
   pip install opcua pandas numpy scikit-learn
 
 Run:
-  python opcua_pid_ai_advisor.py \
+  python ai_advisor.py \
     --endpoint opc.tcp://192.168.88.166:12345 \
-    --model dt_pid_adjuster.pkl \
+    --model pid_advisor.pkl \
     --duration 300 \
     --dt 0.5 \
     --write
