@@ -380,7 +380,7 @@ def simulate(args):
     kp_f, ki_f, kd_f = kp, ki, kd
 
     W = int(model["window_s"])
-    min_update = int(model["min_update_s"])
+    min_update = int(model["min_update_s"]) # update every s seconds
     last_update_idx = -10**9
 
     out_rows = []
@@ -401,7 +401,7 @@ def simulate(args):
         tmp = add_rolling_features(tmp)
         feat_row = tmp.iloc[-1]
 
-        # skip if features not ready
+        # skip if features incomplete
         if feat_row[model["feature_cols"]].isna().any():
             continue
 
@@ -409,7 +409,7 @@ def simulate(args):
         if model["freeze_on_step"] and float(feat_row.get("is_step", 0.0)) > 0.5:
             dkp = dki = dkd = 0.0
         else:
-            # update rate limit
+            # update every min_update seconds
             if (i - last_update_idx) < min_update:
                 dkp = dki = dkd = 0.0
             else:

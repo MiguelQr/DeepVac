@@ -5,12 +5,9 @@ ai_advisor.py
 Real-time OPC UA loop that:
 - reads chamber telemetry
 - computes rolling-window features
-- uses dt_pid_adjuster.pkl to suggest bounded Kp/Ki/Kd updates
+- uses pid.pkl to suggest bounded Kp/Ki/Kd updates
 - optionally writes new gains back via OPC UA
 - logs all readings and actions to JSONL
-
-Prereqs:
-  pip install opcua pandas numpy scikit-learn
 
 Run:
   python ai_advisor.py \
@@ -40,8 +37,8 @@ import json
 import pickle
 import time
 from collections import deque
-from dataclasses import asdict
-from typing import Any, Deque, Dict, Optional, Tuple
+from dataclasses import dataclass
+from typing import Deque, Dict, Tuple
 
 import numpy as np
 import pandas as pd
@@ -49,79 +46,102 @@ from opcua import Client
 
 
 # -----------------------------
-# Load AdjusterBundle (from dt_pid_adjuster.py)
+# Helpers
 # -----------------------------
-# We rely on the bundle having:
-#   cfg.window_s, cfg.sample_hz, feature_cols,
-#   delta_bounds, gain_bounds,
-#   tree_kp/tree_ki/tree_kd
-# and helper logic re-implemented here.
 
-def clamp(val: float, lo: float, hi: float) -> float:
-    return float(np.clip(val, lo, hi))
+def clamp(x: float, lo: float, hi: float) -> float:
+    return float(np.clip(x, lo, hi))
 
-def rolling_features_runtime(df: pd.DataFrame, window_s: int, step_lookback_s: int, min_change_sp: float, sample_hz: float) -> pd.Series:
+
+# -----------------------------
+# Feature computation 
+# -----------------------------
+
+def rolling_features_runtime(
+    window_df: pd.DataFrame,
+    window_s: float,
+    step_lookback_s: float,
+    min_step: float,
+    sample_hz: float,
+) -> pd.Series:
     """
-    Compute the same last-row features as training.
-    df must contain columns: sp,temp,p_term,i_term,d_term,p404,p23
+    Compute last-row features from a rolling window.
+
+    window_df must contain columns:
+      sp, temp, p_term, i_term, d_term, p404, p23
+
+    window_s, step_lookback_s, min_step are taken from the saved model.
+    sample_hz is derived from your loop dt (sample_hz = 1/dt).
     """
-    W = int(window_s * sample_hz)
-    L = int(step_lookback_s * sample_hz)
+    W = int(round(window_s * sample_hz))
+    L = int(round(step_lookback_s * sample_hz))
+    L = max(L, 1)
 
-    df = df.copy()
-    df["e"] = df["sp"] - df["temp"]
-    df["de"] = df["e"].diff().fillna(0.0)
-    df["dtemp"] = df["temp"].diff().fillna(0.0)
+    df = window_df.copy()
 
-    # rolling
+    # base signals
+    df["e"] = df["sp"] - df["temp"]                 # error
+    df["de"] = df["e"].diff().fillna(0.0)           # derivative of error
+    df["dtemp"] = df["temp"].diff().fillna(0.0)     # derivative of temperature
+
+    # rolling stats over last W samples
     df["e_abs_mean_W"] = df["e"].abs().rolling(W, min_periods=W).mean()
-    df["e_mean_W"]     = df["e"].rolling(W, min_periods=W).mean()
-    df["e_std_W"]      = df["e"].rolling(W, min_periods=W).std()
+    df["e_mean_W"] = df["e"].rolling(W, min_periods=W).mean()
+    df["e_std_W"] = df["e"].rolling(W, min_periods=W).std()
 
-    df["de_mean_W"]    = df["de"].rolling(W, min_periods=W).mean()
-    df["de_std_W"]     = df["de"].rolling(W, min_periods=W).std()
+    df["de_mean_W"] = df["de"].rolling(W, min_periods=W).mean()
+    df["de_std_W"] = df["de"].rolling(W, min_periods=W).std()
 
     df["temp_slope_W"] = df["dtemp"].rolling(W, min_periods=W).mean()
 
     for c in ["p_term", "i_term", "d_term"]:
         df[f"{c}_mean_W"] = df[c].rolling(W, min_periods=W).mean()
-        df[f"{c}_std_W"]  = df[c].rolling(W, min_periods=W).std()
+        df[f"{c}_std_W"] = df[c].rolling(W, min_periods=W).std()
 
     for c in ["p404", "p23"]:
         df[f"{c}_mean_W"] = df[c].rolling(W, min_periods=W).mean()
-        df[f"{c}_std_W"]  = df[c].rolling(W, min_periods=W).std()
+        df[f"{c}_std_W"] = df[c].rolling(W, min_periods=W).std()
 
+    # setpoint step detector
     df["sp_step"] = df["sp"] - df["sp"].shift(L)
-    df["is_step"] = (df["sp_step"].abs() >= min_change_sp).astype(float)
+    df["is_step"] = (df["sp_step"].abs() >= float(min_step)).astype(float)
 
     return df.iloc[-1]
 
 
-def predict_deltas(bundle: Any, feat_row: pd.Series) -> Tuple[float, float, float]:
-    X = feat_row[bundle.feature_cols].to_numpy().reshape(1, -1)
-    dkp = float(bundle.tree_kp.predict(X)[0])
-    dki = float(bundle.tree_ki.predict(X)[0])
-    dkd = float(bundle.tree_kd.predict(X)[0])
+def predict_deltas(model: dict, feat_row: pd.Series) -> Tuple[float, float, float]:
+    """
+    Predict (dkp_mult, dki_mult, dkd_mult) using the 3 decision trees in the model dict.
+    """
+    feats = model["feature_cols"]
+    X = feat_row[feats].to_numpy().reshape(1, -1)
 
-    dkp = float(np.clip(dkp, bundle.delta_bounds.dkp[0], bundle.delta_bounds.dkp[1]))
-    dki = float(np.clip(dki, bundle.delta_bounds.dki[0], bundle.delta_bounds.dki[1]))
-    dkd = float(np.clip(dkd, bundle.delta_bounds.dkd[0], bundle.delta_bounds.dkd[1]))
+    dkp = float(model["tree_kp"].predict(X)[0])
+    dki = float(model["tree_ki"].predict(X)[0])
+    dkd = float(model["tree_kd"].predict(X)[0])
+
+    dkp = float(np.clip(dkp, *model["delta_bounds"]["dkp"]))
+    dki = float(np.clip(dki, *model["delta_bounds"]["dki"]))
+    dkd = float(np.clip(dkd, *model["delta_bounds"]["dkd"]))
     return dkp, dki, dkd
 
 
-def apply_deltas(bundle: Any, kp: float, ki: float, kd: float, dkp: float, dki: float, dkd: float) -> Tuple[float, float, float]:
-    kp_new = kp * (1.0 + dkp)
-    ki_new = ki * (1.0 + dki)
-    kd_new = kd * (1.0 + dkd)
+def apply_deltas(model: dict, kp: float, ki: float, kd: float, dkp: float, dki: float, dkd: float) -> Tuple[float, float, float]:
+    """
+    Apply deltas as multiplicative updates and clamp to safe bounds.
+    """
+    kp2 = kp * (1.0 + dkp)
+    ki2 = ki * (1.0 + dki)
+    kd2 = kd * (1.0 + dkd)
 
-    kp_new = clamp(kp_new, bundle.gain_bounds.kp[0], bundle.gain_bounds.kp[1])
-    ki_new = clamp(ki_new, bundle.gain_bounds.ki[0], bundle.gain_bounds.ki[1])
-    kd_new = clamp(kd_new, bundle.gain_bounds.kd[0], bundle.gain_bounds.kd[1])
-    return kp_new, ki_new, kd_new
+    kp2 = clamp(kp2, *model["gain_bounds"]["kp"])
+    ki2 = clamp(ki2, *model["gain_bounds"]["ki"])
+    kd2 = clamp(kd2, *model["gain_bounds"]["kd"])
+    return kp2, ki2, kd2
 
 
 # -----------------------------
-# OPC UA
+# OPC UA mapping
 # -----------------------------
 
 @dataclass
@@ -137,37 +157,45 @@ class NodeMap:
     kd: str
 
 
-def read_nodes(client: Client, nodes: NodeMap) -> Dict[str, float]:
+def opc_read(client: Client, nodes: NodeMap) -> Dict[str, float]:
     """
-    Read required nodes from OPC UA.
+    Read telemetry nodes.
+    p404 and p23: training had two pressures; if you only have one, we map:
+      p404 = pressure, p23 = 0.0
     """
-    out = {}
-    out["temp"] = float(client.get_node(nodes.temp).get_value())
-    out["sp"] = float(client.get_node(nodes.sp).get_value())
-    out["p_term"] = float(client.get_node(nodes.p_term).get_value())
-    out["i_term"] = float(client.get_node(nodes.i_term).get_value())
-    out["d_term"] = float(client.get_node(nodes.d_term).get_value())
+    temp = float(client.get_node(nodes.temp).get_value())
+    sp = float(client.get_node(nodes.sp).get_value())
+    p_term = float(client.get_node(nodes.p_term).get_value())
+    i_term = float(client.get_node(nodes.i_term).get_value())
+    d_term = float(client.get_node(nodes.d_term).get_value())
     pressure = float(client.get_node(nodes.pressure).get_value())
-    out["p404"] = pressure
-    out["p23"] = 0.0  # if you have a second pressure channel, map it here
-    return out
+
+    return {
+        "temp": temp,
+        "sp": sp,
+        "p_term": p_term,
+        "i_term": i_term,
+        "d_term": d_term,
+        "p404": pressure,
+        "p23": 0.0,
+    }
 
 
-def read_gains(client: Client, nodes: NodeMap) -> Tuple[float, float, float]:
+def opc_read_gains(client: Client, nodes: NodeMap) -> Tuple[float, float, float]:
     kp = float(client.get_node(nodes.kp).get_value())
     ki = float(client.get_node(nodes.ki).get_value())
     kd = float(client.get_node(nodes.kd).get_value())
     return kp, ki, kd
 
 
-def write_gains(client: Client, nodes: NodeMap, kp: float, ki: float, kd: float) -> None:
+def opc_write_gains(client: Client, nodes: NodeMap, kp: float, ki: float, kd: float) -> None:
     client.get_node(nodes.kp).set_value(kp)
     client.get_node(nodes.ki).set_value(ki)
     client.get_node(nodes.kd).set_value(kd)
 
 
 # -----------------------------
-# Main loop
+# Main
 # -----------------------------
 
 def main() -> None:
@@ -176,35 +204,40 @@ def main() -> None:
     ap.add_argument("--model", required=True)
     ap.add_argument("--duration", type=float, default=60.0)
     ap.add_argument("--dt", type=float, default=0.5)
-    ap.add_argument("--write", action="store_true", help="Actually write Kp/Ki/Kd back to OPC.")
+    ap.add_argument("--write", action="store_true", help="Actually write Kp/Ki/Kd to OPC UA.")
     ap.add_argument("--log", default="opcua_ai_log.jsonl")
 
-    # Safety / update cadence
-    ap.add_argument("--update-every", type=float, default=5.0, help="Seconds between gain updates.")
-    ap.add_argument("--ema-alpha", type=float, default=0.2, help="Extra EMA smoothing on suggested gains.")
-    ap.add_argument("--freeze-on-step", action="store_true", default=True)
+    ap.add_argument("--update-every", type=float, default=5.0, help="Seconds between writes (rate limit).")
+    ap.add_argument("--ema-alpha", type=float, default=0.2, help="EMA smoothing on suggested gains.")
+    ap.add_argument("--freeze-on-step", action="store_true", default=True, help="Do not update during SP steps.")
 
-    # Node ids
     ap.add_argument("--node-temp", default="ns=2;s=Testa chamber.temp")
-    ap.add_argument("--node-sp", required=True, help="Node id for temperature setpoint (SP).")
+    ap.add_argument("--node-sp", required=True, help="Node id for SP (temperature setpoint).")
     ap.add_argument("--node-p", default="ns=2;s=Testa chamber.temp_u_p")
     ap.add_argument("--node-i", default="ns=2;s=Testa chamber.temp_u_i")
     ap.add_argument("--node-d", default="ns=2;s=Testa chamber.temp_u_d")
     ap.add_argument("--node-pressure", default="ns=2;s=Testa chamber.pres")
 
-    ap.add_argument("--node-kp", required=True, help="Node id for Kp gain (write target).")
-    ap.add_argument("--node-ki", required=True, help="Node id for Ki gain (write target).")
-    ap.add_argument("--node-kd", required=True, help="Node id for Kd gain (write target).")
+    ap.add_argument("--node-kp", required=True, help="Node id for writable Kp gain.")
+    ap.add_argument("--node-ki", required=True, help="Node id for writable Ki gain.")
+    ap.add_argument("--node-kd", required=True, help="Node id for writable Kd gain.")
 
     args = ap.parse_args()
 
-    # Load model bundle
     with open(args.model, "rb") as f:
-        bundle = pickle.load(f)
+        model = pickle.load(f)
 
-    # Override/align smoothing with runtime args (optional)
-    bundle.ema_alpha = float(args.ema_alpha)
-    bundle.freeze_on_step = bool(args.freeze_on_step)
+    model["ema_alpha"] = float(args.ema_alpha)
+    model["freeze_on_step"] = bool(args.freeze_on_step)
+
+    # Sampling
+    if args.dt <= 0:
+        raise ValueError("--dt must be > 0")
+    sample_hz = 1.0 / float(args.dt)
+
+    # Rolling buffer length in samples
+    window_s = float(model["window_s"])
+    W = int(round(window_s * sample_hz))
 
     nodes = NodeMap(
         temp=args.node_temp,
@@ -222,15 +255,12 @@ def main() -> None:
     client.connect()
     print(f"Connected to {args.endpoint}")
 
-    # Rolling buffer sized to the model window
-    W = int(bundle.cfg.window_s * bundle.cfg.sample_hz)
+    # Rolling telemetry buffer
     buf: Deque[Dict[str, float]] = deque(maxlen=W)
 
-    # Current gains from OPC
-    kp_cur, ki_cur, kd_cur = read_gains(client, nodes)
-    kp_f, ki_f, kd_f = kp_cur, ki_cur, kd_cur
+    kp_f, ki_f, kd_f = opc_read_gains(client, nodes)
 
-    last_update_t = 0.0
+    last_write_t = 0.0
     start = time.time()
 
     with open(args.log, "w", encoding="utf-8") as logf:
@@ -239,58 +269,57 @@ def main() -> None:
             if now - start >= args.duration:
                 break
 
-            # Read telemetry
-            sample = read_nodes(client, nodes)
+            # ---- 1) Read telemetry
+            sample = opc_read(client, nodes)
             sample["timestamp"] = now
             buf.append(sample)
 
-            # Not enough history yet
+            # ---- 2) Wait until buffer has enough history
             if len(buf) < W:
                 time.sleep(args.dt)
                 continue
 
-            # Build window df for feature computation
-            window_df = pd.DataFrame(list(buf), columns=["sp", "temp", "p_term", "i_term", "d_term", "p404", "p23", "timestamp"])
-
+            # ---- 3) Build feature row from rolling window
+            win_df = pd.DataFrame(list(buf), columns=["sp", "temp", "p_term", "i_term", "d_term", "p404", "p23", "timestamp"])
             feat = rolling_features_runtime(
-                window_df[["sp", "temp", "p_term", "i_term", "d_term", "p404", "p23"]],
-                window_s=bundle.cfg.window_s,
-                step_lookback_s=bundle.cfg.step_lookback_s,
-                min_change_sp=bundle.cfg.min_change_sp,
-                sample_hz=bundle.cfg.sample_hz,
+                win_df[["sp", "temp", "p_term", "i_term", "d_term", "p404", "p23"]],
+                window_s=float(model["window_s"]),
+                step_lookback_s=float(model.get("step_lookback_s", 5.0)),
+                min_step=float(model.get("min_step", 0.5)),
+                sample_hz=sample_hz,
             )
 
-            # If model features not ready (NaNs)
-            if feat[bundle.feature_cols].isna().any():
+            # skip incomplete rows
+            if feat[model["feature_cols"]].isna().any():
                 time.sleep(args.dt)
                 continue
 
-            # Rate limit updates
-            do_update = (now - last_update_t) >= args.update_every
+            # ---- 4) Update gains every N seconds
+            do_write = (now - last_write_t) >= float(args.update_every)
 
-            # Freeze during SP step
-            if bundle.freeze_on_step and float(feat.get("is_step", 0.0)) > 0.5:
+            # Freeze during SP steps
+            if model["freeze_on_step"] and float(feat.get("is_step", 0.0)) > 0.5:
                 dkp = dki = dkd = 0.0
-                do_update = False
+                do_write = False
             else:
-                dkp, dki, dkd = predict_deltas(bundle, feat)
+                dkp, dki, dkd = predict_deltas(model, feat)
 
-            kp_sug, ki_sug, kd_sug = apply_deltas(bundle, kp_f, ki_f, kd_f, dkp, dki, dkd)
+            # ---- 5) Apply deltas + EMA smoothing
+            kp_sug, ki_sug, kd_sug = apply_deltas(model, kp_f, ki_f, kd_f, dkp, dki, dkd)
 
-            # EMA smoothing
-            a = float(bundle.ema_alpha)
+            a = float(model["ema_alpha"])
             kp_f = (1 - a) * kp_f + a * kp_sug
             ki_f = (1 - a) * ki_f + a * ki_sug
             kd_f = (1 - a) * kd_f + a * kd_sug
 
-            # Write gains (optional)
+            # ---- 6) Write
             wrote = False
-            if args.write and do_update:
-                write_gains(client, nodes, kp_f, ki_f, kd_f)
-                last_update_t = now
+            if args.write and do_write:
+                opc_write_gains(client, nodes, kp_f, ki_f, kd_f)
+                last_write_t = now
                 wrote = True
 
-            # Log record
+            # ---- 7) Log
             rec = {
                 "t": now,
                 "sp": sample["sp"],
@@ -300,7 +329,7 @@ def main() -> None:
                 "i_term": sample["i_term"],
                 "d_term": sample["d_term"],
                 "pressure": sample["p404"],
-                "features": {k: float(feat[k]) for k in bundle.feature_cols},
+                "features": {k: float(feat[k]) for k in model["feature_cols"]},
                 "dkp": dkp, "dki": dki, "dkd": dkd,
                 "kp": kp_f, "ki": ki_f, "kd": kd_f,
                 "wrote": wrote,
@@ -308,11 +337,10 @@ def main() -> None:
             logf.write(json.dumps(rec, ensure_ascii=False) + "\n")
             logf.flush()
 
-            # Console
             print(
                 f"SP={sample['sp']:.2f} T={sample['temp']:.2f} e={sample['sp']-sample['temp']:+.2f} | "
-                f"dP={dkp:+.3f} dI={dki:+.3f} dD={dkd:+.3f} -> "
-                f"Kp={kp_f:.2f} Ki={ki_f:.2f} Kd={kd_f:.2f} {'[WROTE]' if wrote else ''}"
+                f"dKp={dkp:+.3f} dKi={dki:+.3f} dKd={dkd:+.3f} -> "
+                f"Kp={kp_f:.3f} Ki={ki_f:.3f} Kd={kd_f:.3f} {'[WROTE]' if wrote else ''}"
             )
 
             time.sleep(args.dt)
