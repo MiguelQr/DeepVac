@@ -1,13 +1,15 @@
 Controller
 
-What examples of metrics that define "better control" have you had experience with? What is "good enough"?
+What examples of metrics define "better control"? What is "good enough"?
 Other that PID, is there any other type of controller used as a standard in the industry?
-Is it common to adjust control parameters during runtime? What techniques are the standard?
-How often are control parameters changed in production systems?
+Which software is it used for control?
+How often are control parameters changed in production systems? Who is responsible for their values?
+Is it common to adjust control parameters during runtime? What techniques are usually used?
 Are there specific conditions where controllers tend to struggle the most? (Software, hardware, sensors)
 
 AI related
 
-In your experience, is the implemented AI advisory, supervisory, or directly actuating when interacting with controllers?
-How was the AI implementated? (Edge, chip, cloud)
-When introducing intelligence into a control loop, where is the limit between automation and operator responsibility?
+What problems have you seen AI solve in control systems?
+Is an AI implementation in control usually advisory, supervisory, or directly actuating?
+How was the AI implementated? (Edge computing, internal chip, cloud based)
+When introducing intelligence into a control loop, how much autonomy is it given? (safety manual control)
