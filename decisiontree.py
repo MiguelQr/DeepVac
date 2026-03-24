@@ -93,9 +93,7 @@ def load_run(csv_path, run_name):
         "Уставка по температуре в объёме, °C": "sp",
         "Управление по температуре (П), %": "p_term",
         "Управление по температуре (И), %": "i_term",
-        "Управление по температуре (Д), %": "d_term",
-        "Давление нагнетания 404 комп., атм": "p404",
-        "Давление нагнетания 23 комп., атм": "p23",
+        "Управление по температуре (Д), %": "d_term"
     }
 
     missing = [k for k in colmap if k not in df.columns]
@@ -141,11 +139,6 @@ def add_rolling_features(df):
 
     # Control terms
     for c in ["p_term", "i_term", "d_term"]:
-        out[f"{c}_mean_W"] = out[c].rolling(W, min_periods=W).mean()
-        out[f"{c}_std_W"] = out[c].rolling(W, min_periods=W).std()
-
-    # Pressures
-    for c in ["p404", "p23"]:
         out[f"{c}_mean_W"] = out[c].rolling(W, min_periods=W).mean()
         out[f"{c}_std_W"] = out[c].rolling(W, min_periods=W).std()
 
@@ -248,8 +241,6 @@ def build_training_table(df_all):
         "p_term_mean_W", "p_term_std_W",
         "i_term_mean_W", "i_term_std_W",
         "d_term_mean_W", "d_term_std_W",
-        "p404_mean_W", "p404_std_W",
-        "p23_mean_W", "p23_std_W",
         "sp_step", "is_step",
         "run", "timestamp",
     ]
@@ -385,7 +376,7 @@ def simulate(args):
 
     out_rows = []
 
-    base_cols = ["sp", "temp", "p_term", "i_term", "d_term", "p404", "p23"]
+    base_cols = ["sp", "temp", "p_term", "i_term", "d_term"]
 
     for i in range(len(df)):
         if i < W:

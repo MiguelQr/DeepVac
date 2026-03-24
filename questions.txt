@@ -13,3 +13,10 @@ What problems have you seen AI solve in control systems?
 Is an AI implementation in control usually advisory, supervisory, or directly actuating?
 How was the AI implementated? (Edge computing, internal chip, cloud based)
 When introducing intelligence into a control loop, how much autonomy is it given? (safety manual control)
+
+
+2.0
+
+What steps would you recommend for developing a system model, and then a MPC?
+What cause have you seen that makes controllers struggle the most? (Software, hardware, sensors)
+How do you add a new component to a controller? What is the pipeline? (E.g. cameras with AI)
