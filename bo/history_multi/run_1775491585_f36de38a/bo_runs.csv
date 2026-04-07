@@ -1,0 +1,2 @@
+run_id,start_ts,end_ts,duration_s,num_samples,kp,ki,kd,mse,start_temp_measured,target_temp_measured,delta_temp_measured,cost,tail_mae,overshoot,time_on_wrong_side,max_wrong_side_dev,settle_fraction,tail_start_index,target,start_temp_from_cost,direction,status
+run_1775491585_f36de38a,1775491587.0244453,1775493084.142217,1497.1177716255188,469,6.0,981.0,11.0,64.79248694170072,-14.210819244384766,25.0,-39.210819244384766,34.020045417050824,0.28896240326295414,1.306182861328125,833.4973170757294,1.306182861328125,0.7831325301204819,54,25.0,-14.210819244384766,-1.0,completed

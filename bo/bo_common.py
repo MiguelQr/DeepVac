@@ -211,8 +211,8 @@ def append_rows_csv(path: str, rows: Iterable[Dict[str, object]]) -> None:
         writer.writerows(rows)
 
 
-def history_run_file(run_id: str, filename: str) -> str:
-    return str(Path("history") / run_id / Path(filename).name)
+def history_run_file(run_id: str, filename: str, folder_name: str = "history") -> str:
+    return str(Path(folder_name) / run_id / Path(filename).name)
 
 
 def load_runs_table(path: str) -> pd.DataFrame:
@@ -333,3 +333,187 @@ def save_json(path: str, payload: Dict[str, object]) -> None:
     p.parent.mkdir(parents=True, exist_ok=True)
     with p.open("w", encoding="utf-8") as fh:
         json.dump(payload, fh, indent=2)
+
+from typing import Tuple
+
+
+def parse_bounds(text: str) -> Tuple[float, float]:
+    
+    if not isinstance(text, str):
+        raise ValueError(f"Bounds must be a string, got: {type(text)}")
+
+    parts = [p.strip() for p in text.split(",")]
+
+    if len(parts) != 2:
+        raise ValueError(f"Invalid bounds format: '{text}'. Expected 'low,high'")
+
+    try:
+        lo = float(parts[0])
+        hi = float(parts[1])
+    except ValueError:
+        raise ValueError(f"Bounds must be numeric: '{text}'")
+
+    if lo >= hi:
+        raise ValueError(f"Invalid bounds '{text}': low must be < high")
+
+    return lo, hi
+
+def append_mae_column(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Return a copy of df with a per-row absolute error column named 'mae'.
+
+    Required columns:
+        - temp
+        - temp_ref
+    """
+    required = {"temp", "temp_ref"}
+    missing = required - set(df.columns)
+    if missing:
+        raise ValueError(f"append_mae_column missing required columns: {sorted(missing)}")
+
+    out = df.copy()
+    out["mae"] = (out["temp_ref"].astype(float) - out["temp"].astype(float)).abs()
+    return out
+
+
+def compute_run_cost(
+    df: pd.DataFrame,
+    near_temp: float = 5.0,
+    overshoot_weight: float = 10.0,
+    time_below_weight: float = 0.02,
+) -> dict:
+    """
+    Compute a near-target cost for cooling to 0 C.
+
+    cost = tail_mae + overshoot_weight * negative_overshoot^2
+                        + time_below_weight * time_below_0
+
+    """
+    required = {"timestamp", "temp", "temp_ref"}
+    missing = required - set(df.columns)
+    if missing:
+        raise ValueError(f"compute_run_cost missing required columns: {sorted(missing)}")
+
+    work = df.sort_values("timestamp").reset_index(drop=True).copy()
+    work["temp"] = work["temp"].astype(float)
+    work["temp_ref"] = work["temp_ref"].astype(float)
+    work["timestamp"] = work["timestamp"].astype(float)
+
+    near_idx = work.index[work["temp"] <= near_temp]
+    if len(near_idx) == 0:
+        return {
+            "cost": 1e9,
+            "tail_mae": None,
+            "negative_overshoot": None,
+            "time_below_0": None,
+            "min_temp": None,
+            "tail_start_index": None,
+            "reason": "never_reached_near_target",
+        }
+
+    start = int(near_idx[0])
+    tail = work.iloc[start:].copy()
+
+    err = tail["temp_ref"] - tail["temp"]
+    tail_mae = float(np.mean(np.abs(err)))
+
+    min_temp = float(tail["temp"].min())
+    negative_overshoot = float(max(0.0, -min_temp))
+
+    below0 = tail["temp"] < 0.0
+    dt = tail["timestamp"].diff().fillna(0.0).to_numpy(dtype=float)
+    time_below_0 = float(np.sum(dt[below0.to_numpy()]))
+
+    cost = float(
+        tail_mae
+        + overshoot_weight * (negative_overshoot ** 2)
+        + time_below_weight * time_below_0
+    )
+
+    return {
+        "cost": cost,
+        "tail_mae": tail_mae,
+        "negative_overshoot": negative_overshoot,
+        "time_below_0": time_below_0,
+        "min_temp": min_temp,
+        "tail_start_index": start,
+    }
+
+def compute_run_cost_band(
+    df,
+    entry_band=2.0,
+    settle_band=0.5,
+    overshoot_weight=10.0,
+    wrong_side_weight=0.02,
+):
+
+    df = df.sort_values("timestamp").reset_index(drop=True).copy()
+
+    temp = df["temp"].astype(float).to_numpy()
+    temp_ref = df["temp_ref"].astype(float).to_numpy()
+    t = df["timestamp"].astype(float).to_numpy()
+
+    target = float(temp_ref[0])
+    start_temp = float(temp[0])
+
+    # 1 for cooling, -1 for heating
+    direction = 1.0 if start_temp > target else -1.0
+
+    abs_err = np.abs(temp - target)
+
+    idx = np.where(abs_err <= entry_band)[0]
+    
+    if len(idx) == 0:
+        return {
+            "cost": 1e9,
+            "tail_mae": None,
+            "overshoot": None,
+            "time_on_wrong_side": None,
+            "max_wrong_side_dev": None,
+            "settle_fraction": None,
+            "tail_start_index": None,
+            "target": target,
+            "start_temp": start_temp,
+            "direction": direction,
+            "reason": "never_reached_entry_band",
+        }
+
+    start_idx = int(idx[0])
+    tail_temp = temp[start_idx:]
+    tail_time = t[start_idx:]
+
+    tail_mae = float(np.mean(np.abs(tail_temp - target)))
+
+    dev = tail_temp - target
+
+    if direction > 0:
+        wrong_dev = np.maximum(0.0, -dev)
+    else:
+        wrong_dev = np.maximum(0.0, dev)
+
+    overshoot = float(np.max(wrong_dev)) if len(wrong_dev) else 0.0
+
+    dt = np.diff(tail_time, prepend=tail_time[0])
+    time_on_wrong_side = float(np.sum(dt[wrong_dev > 0]))
+
+    cost = (
+        tail_mae
+        + overshoot_weight * (overshoot ** 2)
+        + wrong_side_weight * time_on_wrong_side
+    )
+
+    within_settle = np.abs(tail_temp - target) <= settle_band
+    settle_fraction = float(np.mean(within_settle)) if len(tail_temp) else 0.0
+
+    return {
+        "cost": cost,
+        "tail_mae": tail_mae,
+        "overshoot": overshoot,
+        "time_on_wrong_side": time_on_wrong_side,
+        "max_wrong_side_dev": overshoot,
+        "settle_fraction": settle_fraction,
+        "tail_start_index": start_idx,
+        "target": target,
+        "start_temp": start_temp,
+        "direction": direction,
+    }

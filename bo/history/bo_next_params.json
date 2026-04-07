@@ -1,0 +1,53 @@
+{
+  "suggested": {
+    "kp": 11.981541993821073,
+    "ki": 989.6085760874787,
+    "kd": 19.20153597820406
+  },
+  "prediction": {
+    "cost_mean": -13.200403764198882,
+    "cost_std": 255.3480908628519,
+    "expected_improvement": 116.03666642810228,
+    "best_observed_cost": 13.991379631104405
+  },
+  "best_observed_run": {
+    "run_id": "run_1775516417_180b6a6a",
+    "kp": 6.0,
+    "ki": 997.0,
+    "kd": 16.0,
+    "cost": 13.991379631104405,
+    "tail_mae": 0.6367847974910292,
+    "negative_overshoot": 0.7434768676757812,
+    "time_below_0": 391.3508152961731,
+    "min_temp": -0.7434768676757812
+  },
+  "meta": {
+    "run_id": "run_1775539424_eec177a0",
+    "n_training_runs": 24,
+    "acquisition": "expected_improvement",
+    "active_learning_rule": "maximize_expected_improvement",
+    "xi": 0.01,
+    "n_candidates": 7000,
+    "seed": 0,
+    "bounds": {
+      "kp": [
+        6.0,
+        50.0
+      ],
+      "ki": [
+        200.0,
+        1000.0
+      ],
+      "kd": [
+        5.0,
+        20.0
+      ]
+    },
+    "objective": {
+      "name": "tail_mae_plus_overshoot_plus_time_below_0",
+      "near_temp": 2.0,
+      "overshoot_weight": 10.0,
+      "time_below_weight": 0.02
+    }
+  }
+}

@@ -1,0 +1,293 @@
+[
+  {
+    "timestamp": 1775438365,
+    "run_id": "",
+    "kp": "",
+    "ki": "",
+    "kd": "",
+    "mse": "",
+    "next_suggested": {
+      "kp": 6.193990118187496,
+      "ki": 714.1973408742178,
+      "kd": 10.647541879805868
+    },
+    "prediction": {
+      "cost_mean": 57.73204676958767,
+      "cost_std": 366.1366344692687,
+      "expected_improvement": 163.06225196313744,
+      "best_observed_cost": 90.55911301196886
+    },
+    "meta": {
+      "run_id": "",
+      "n_training_runs": 17,
+      "n_loaded_runs": 17,
+      "acquisition": "expected_improvement",
+      "active_learning_rule": "maximize_expected_improvement",
+      "xi": 0.01,
+      "n_candidates": 7000,
+      "seed": 0,
+      "test_duration": "",
+      "dt": "",
+      "progress_every": ""
+    }
+  },
+  {
+    "timestamp": 1775440007,
+    "run_id": "run_1775439099_2a20b7d8",
+    "kp": 6.0,
+    "ki": 714.0,
+    "kd": 10.0,
+    "mse": 1033.4303727349625,
+    "next_suggested": {
+      "kp": 6.008360070723114,
+      "ki": 995.9874851276331,
+      "kd": 12.167344302678043
+    },
+    "prediction": {
+      "cost_mean": 190.19827066329447,
+      "cost_std": 339.94905265762924,
+      "expected_improvement": 91.58068360486241,
+      "best_observed_cost": 90.55911301196886
+    },
+    "meta": {
+      "run_id": "run_1775439099_2a20b7d8",
+      "n_training_runs": 18,
+      "acquisition": "expected_improvement",
+      "active_learning_rule": "maximize_expected_improvement",
+      "xi": 0.01,
+      "n_candidates": 7000,
+      "seed": 0,
+      "test_duration": 900.0,
+      "dt": 1.0,
+      "progress_every": 60.0,
+      "objective": {
+        "name": "tail_mae_plus_overshoot_plus_time_below_0",
+        "near_temp": 2.0,
+        "overshoot_weight": 10.0,
+        "time_below_weight": 0.02
+      }
+    }
+  },
+  {
+    "timestamp": 1775442680,
+    "run_id": "run_1775441777_b5861162",
+    "kp": 6.0,
+    "ki": 995.0,
+    "kd": 12.0,
+    "cost": 19.60126133724856,
+    "next_suggested": {
+      "kp": 6.4482906406777225,
+      "ki": 981.0803313993812,
+      "kd": 11.537496717698641
+    },
+    "prediction": {
+      "cost_mean": 258.8929622397717,
+      "cost_std": 313.2571665621882,
+      "expected_improvement": 40.110248161612084,
+      "best_observed_cost": 19.60126133724856
+    },
+    "meta": {
+      "run_id": "run_1775441777_b5861162",
+      "n_training_runs": 19,
+      "acquisition": "expected_improvement",
+      "active_learning_rule": "maximize_expected_improvement",
+      "xi": 0.01,
+      "n_candidates": 7000,
+      "seed": 0,
+      "test_duration": 900.0,
+      "dt": 1.0,
+      "progress_every": 60.0,
+      "objective": {
+        "name": "tail_mae_plus_overshoot_plus_time_below_0",
+        "near_temp": 2.0,
+        "overshoot_weight": 10.0,
+        "time_below_weight": 0.02
+      }
+    }
+  },
+  {
+    "timestamp": 1775446242,
+    "run_id": "run_1775445336_a849e910",
+    "kp": 6.0,
+    "ki": 981.0,
+    "kd": 11.0,
+    "cost": 18.580212677742857,
+    "next_suggested": {
+      "kp": 6.4482906406777225,
+      "ki": 981.0803313993812,
+      "kd": 11.537496717698641
+    },
+    "prediction": {
+      "cost_mean": 214.04374568130163,
+      "cost_std": 306.76379816146,
+      "expected_improvement": 48.68226116519365,
+      "best_observed_cost": 18.580212677742857
+    },
+    "meta": {
+      "run_id": "run_1775445336_a849e910",
+      "n_training_runs": 20,
+      "acquisition": "expected_improvement",
+      "active_learning_rule": "maximize_expected_improvement",
+      "xi": 0.01,
+      "n_candidates": 7000,
+      "seed": 0,
+      "test_duration": 900.0,
+      "dt": 1.0,
+      "progress_every": 60.0,
+      "objective": {
+        "name": "tail_mae_plus_overshoot_plus_time_below_0",
+        "near_temp": 2.0,
+        "overshoot_weight": 10.0,
+        "time_below_weight": 0.02
+      }
+    }
+  },
+  {
+    "timestamp": 1775514927,
+    "run_id": "run_1775514024_8a045a38",
+    "kp": 5.0,
+    "ki": 981.0,
+    "kd": 11.0,
+    "cost": 14.193716247571647,
+    "next_suggested": {
+      "kp": 6.328607609022005,
+      "ki": 997.4446265803141,
+      "kd": 16.032264624602597
+    },
+    "prediction": {
+      "cost_mean": 38.71342055323646,
+      "cost_std": 138.66391714245074,
+      "expected_improvement": 43.91736504439338,
+      "best_observed_cost": 14.193716247571649
+    },
+    "meta": {
+      "run_id": "run_1775514024_8a045a38",
+      "n_training_runs": 21,
+      "acquisition": "expected_improvement",
+      "active_learning_rule": "maximize_expected_improvement",
+      "xi": 0.01,
+      "n_candidates": 7000,
+      "seed": 0,
+      "test_duration": 900.0,
+      "dt": 1.0,
+      "progress_every": 60.0,
+      "objective": {
+        "name": "tail_mae_plus_overshoot_plus_time_below_0",
+        "near_temp": 2.0,
+        "overshoot_weight": 10.0,
+        "time_below_weight": 0.02
+      }
+    }
+  },
+  {
+    "timestamp": 1775517318,
+    "run_id": "run_1775516417_180b6a6a",
+    "kp": 6.0,
+    "ki": 997.0,
+    "kd": 16.0,
+    "cost": 13.991379631104403,
+    "next_suggested": {
+      "kp": 6.787222519466912,
+      "ki": 224.6363329487198,
+      "kd": 15.513428844511692
+    },
+    "prediction": {
+      "cost_mean": 294.567103698412,
+      "cost_std": 372.3551826084563,
+      "expected_improvement": 48.542387020555665,
+      "best_observed_cost": 13.991379631104405
+    },
+    "meta": {
+      "run_id": "run_1775516417_180b6a6a",
+      "n_training_runs": 22,
+      "acquisition": "expected_improvement",
+      "active_learning_rule": "maximize_expected_improvement",
+      "xi": 0.01,
+      "n_candidates": 7000,
+      "seed": 0,
+      "test_duration": 900.0,
+      "dt": 1.0,
+      "progress_every": 60.0,
+      "objective": {
+        "name": "tail_mae_plus_overshoot_plus_time_below_0",
+        "near_temp": 2.0,
+        "overshoot_weight": 10.0,
+        "time_below_weight": 0.02
+      }
+    }
+  },
+  {
+    "timestamp": 1775519330,
+    "run_id": "run_1775518428_b8b37375",
+    "kp": 6.0,
+    "ki": 224.0,
+    "kd": 15.0,
+    "cost": 41.05736228173691,
+    "next_suggested": {
+      "kp": 6.706249148908375,
+      "ki": 271.1129641696224,
+      "kd": 16.188565691221978
+    },
+    "prediction": {
+      "cost_mean": 230.18771773712353,
+      "cost_std": 362.35266878857925,
+      "expected_improvement": 61.45023024785276,
+      "best_observed_cost": 13.991379631104405
+    },
+    "meta": {
+      "run_id": "run_1775518428_b8b37375",
+      "n_training_runs": 23,
+      "acquisition": "expected_improvement",
+      "active_learning_rule": "maximize_expected_improvement",
+      "xi": 0.01,
+      "n_candidates": 7000,
+      "seed": 0,
+      "test_duration": 900.0,
+      "dt": 1.0,
+      "progress_every": 60.0,
+      "objective": {
+        "name": "tail_mae_plus_overshoot_plus_time_below_0",
+        "near_temp": 2.0,
+        "overshoot_weight": 10.0,
+        "time_below_weight": 0.02
+      }
+    }
+  },
+  {
+    "timestamp": 1775540325,
+    "run_id": "run_1775539424_eec177a0",
+    "kp": 7.0,
+    "ki": 981.0,
+    "kd": 11.0,
+    "cost": 23.694434494187504,
+    "next_suggested": {
+      "kp": 11.981541993821073,
+      "ki": 989.6085760874787,
+      "kd": 19.20153597820406
+    },
+    "prediction": {
+      "cost_mean": -13.200403764198882,
+      "cost_std": 255.3480908628519,
+      "expected_improvement": 116.03666642810228,
+      "best_observed_cost": 13.991379631104405
+    },
+    "meta": {
+      "run_id": "run_1775539424_eec177a0",
+      "n_training_runs": 24,
+      "acquisition": "expected_improvement",
+      "active_learning_rule": "maximize_expected_improvement",
+      "xi": 0.01,
+      "n_candidates": 7000,
+      "seed": 0,
+      "test_duration": 900.0,
+      "dt": 1.0,
+      "progress_every": 60.0,
+      "objective": {
+        "name": "tail_mae_plus_overshoot_plus_time_below_0",
+        "near_temp": 2.0,
+        "overshoot_weight": 10.0,
+        "time_below_weight": 0.02
+      }
+    }
+  }
+]

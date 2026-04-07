@@ -1,0 +1,32 @@
+{
+  "run_summary": {
+    "run_id": "run_1774587903_f47e5427",
+    "start_ts": 1774587904.4109097,
+    "end_ts": 1774588802.3202536,
+    "duration_s": 897.909343957901,
+    "num_samples": 394,
+    "kp": 25.0,
+    "ki": 883.0,
+    "kd": 18.0,
+    "mse": 235.24622719623386
+  },
+  "used_params": {
+    "kp": 25.0,
+    "ki": 883.0,
+    "kd": 18.0
+  },
+  "objective": "MSE(setpoint - temp)",
+  "next_suggested": {
+    "kp": 34.02631424214399,
+    "ki": 404.40176837832223,
+    "kd": 18.72799131598527
+  },
+  "files": {
+    "samples_csv": "history\\run_1774587903_f47e5427\\bo_samples.csv",
+    "runs_csv": "history\\run_1774587903_f47e5427\\bo_runs.csv",
+    "all_runs_csv": "history/bo_all_runs.csv",
+    "model_out": "history/bo_gp_model.pkl",
+    "next_out": "history/bo_next_params.json",
+    "params_history": "history/bo_params_history.json"
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "suggested": {
+    "kp": 24.99993856770373,
+    "ki": 489.82657728203066,
+    "kd": 13.78764570492576
+  },
+  "prediction": {
+    "mse_mean": 175.90344837864376,
+    "mse_std": 41.32027639570199,
+    "expected_improvement": 4.78450121911177,
+    "best_observed_mse": 141.98324730782406
+  },
+  "meta": {
+    "n_training_runs": 9,
+    "xi": 0.01,
+    "n_candidates": 7000,
+    "seed": 0,
+    "generated_after_run_id": "run_1774482215_cd8c2176"
+  }
+}
