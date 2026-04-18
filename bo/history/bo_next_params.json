@@ -1,13 +1,13 @@
 {
   "suggested": {
-    "kp": 11.981541993821073,
-    "ki": 989.6085760874787,
-    "kd": 19.20153597820406
+    "kp": 6.004752299240986,
+    "ki": 208.7689783393599,
+    "kd": 9.117132035333467
   },
   "prediction": {
-    "cost_mean": -13.200403764198882,
-    "cost_std": 255.3480908628519,
-    "expected_improvement": 116.03666642810228,
+    "cost_mean": 28.18312427252215,
+    "cost_std": 145.15538898196783,
+    "expected_improvement": 51.08468853728471,
     "best_observed_cost": 13.991379631104405
   },
   "best_observed_run": {
@@ -22,8 +22,8 @@
     "min_temp": -0.7434768676757812
   },
   "meta": {
-    "run_id": "run_1775539424_eec177a0",
-    "n_training_runs": 24,
+    "run_id": "run_1775838407_4f10b474",
+    "n_training_runs": 25,
     "acquisition": "expected_improvement",
     "active_learning_rule": "maximize_expected_improvement",
     "xi": 0.01,

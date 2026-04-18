@@ -1,0 +1,32 @@
+[
+  {
+    "timestamp": 1776450662.388891,
+    "temp": 27.818754196166992,
+    "temp_raw": 24.796098709106445,
+    "temp_ref": NaN,
+    "state": 1,
+    "temp_u": NaN,
+    "temp_u_p": NaN,
+    "temp_u_i": NaN,
+    "temp_u_d": NaN,
+    "temp_kp": NaN,
+    "temp_ki": NaN,
+    "temp_kd": NaN,
+    "temp_pid_idx": NaN
+  },
+  {
+    "timestamp": 1776450665.409568,
+    "temp": 27.818754196166992,
+    "temp_raw": 24.796098709106445,
+    "temp_ref": NaN,
+    "state": 1,
+    "temp_u": NaN,
+    "temp_u_p": NaN,
+    "temp_u_i": NaN,
+    "temp_u_d": NaN,
+    "temp_kp": NaN,
+    "temp_ki": NaN,
+    "temp_kd": NaN,
+    "temp_pid_idx": NaN
+  }
+]

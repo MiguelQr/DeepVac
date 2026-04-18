@@ -2,7 +2,7 @@ from opcua import Client
 import json
 import time
 
-client = Client("opc.tcp://192.168.88.144:12345") # Real PC 192.168.88.144:12345
+client = Client("opc.tcp://192.168.88.174:12345") # Real PC 192.168.88.144:12345
 client.connect()
 
 readings = []
@@ -16,11 +16,16 @@ while time.time() - start_time < 5.0:
         "timestamp": time.time(),
         "temp": client.get_node("ns=2;s=Testa chamber.temp").get_value(),
         "temp_raw": client.get_node("ns=2;s=Testa chamber.temp_raw").get_value(),
+        "temp_ref": client.get_node("ns=2;s=Testa chamber.temp_ref").get_value(),
         "state": client.get_node("ns=2;s=Testa chamber.state").get_value(),
-        "con": client.get_node("ns=2;s=Testa chamber.temp_u").get_value(),
-        "con_p": client.get_node("ns=2;s=Testa chamber.temp_u_p").get_value(),
-        "con_i": client.get_node("ns=2;s=Testa chamber.temp_u_i").get_value(),
-        "con_d": client.get_node("ns=2;s=Testa chamber.temp_u_d").get_value(),
+        "temp_u": client.get_node("ns=2;s=Testa chamber.temp_u").get_value(),
+        "temp_u_p": client.get_node("ns=2;s=Testa chamber.temp_u_p").get_value(),
+        "temp_u_i": client.get_node("ns=2;s=Testa chamber.temp_u_i").get_value(),
+        "temp_u_d": client.get_node("ns=2;s=Testa chamber.temp_u_d").get_value(),
+        "temp_kp": client.get_node("ns=2;s=Testa chamber.temp_kp").get_value(),
+        "temp_ki": client.get_node("ns=2;s=Testa chamber.temp_ki").get_value(),
+        "temp_kd": client.get_node("ns=2;s=Testa chamber.temp_kd").get_value(),
+        "temp_pid_idx": client.get_node("ns=2;s=Testa chamber.temp_pid_idx").get_value()
     }
     readings.append(reads)
     time.sleep(0.5)

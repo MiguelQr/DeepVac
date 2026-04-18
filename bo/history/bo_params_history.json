@@ -289,5 +289,42 @@
         "time_below_weight": 0.02
       }
     }
+  },
+  {
+    "timestamp": 1775839310,
+    "run_id": "run_1775838407_4f10b474",
+    "kp": 6.0,
+    "ki": 997.0,
+    "kd": 16.0,
+    "cost": 17.537285342574737,
+    "next_suggested": {
+      "kp": 6.004752299240986,
+      "ki": 208.7689783393599,
+      "kd": 9.117132035333467
+    },
+    "prediction": {
+      "cost_mean": 28.18312427252215,
+      "cost_std": 145.15538898196783,
+      "expected_improvement": 51.08468853728471,
+      "best_observed_cost": 13.991379631104405
+    },
+    "meta": {
+      "run_id": "run_1775838407_4f10b474",
+      "n_training_runs": 25,
+      "acquisition": "expected_improvement",
+      "active_learning_rule": "maximize_expected_improvement",
+      "xi": 0.01,
+      "n_candidates": 7000,
+      "seed": 0,
+      "test_duration": 900.0,
+      "dt": 1.0,
+      "progress_every": 60.0,
+      "objective": {
+        "name": "tail_mae_plus_overshoot_plus_time_below_0",
+        "near_temp": 2.0,
+        "overshoot_weight": 10.0,
+        "time_below_weight": 0.02
+      }
+    }
   }
 ]
